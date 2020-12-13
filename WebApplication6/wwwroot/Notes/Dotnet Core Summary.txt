@@ -1,0 +1,1107 @@
+﻿Asp.net core
+
+1. Filters
+2. tag-helpers
+3. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1. Tag-helpers
+
+asp-action
+asp-for
+
+<a asp-action="RsvpForm">RSVP Now</a>
+
+<label asp-for="Phone">Your phone:</label>
+<input asp-for="Phone" />
+
+<form asp-action="RsvpForm" method="post">
+
+-----------------------------------------------------------------------------------
+
+2. Adding Validation
+
+[Required(ErrorMessage = "Please enter your name")]
+[EmailAddress]
+
+-----------------------------------------------------------------------------------
+
+        [Required(ErrorMessage = "Please specify whether you'll attend")]
+        public bool? WillAttend { get; set; }
+
+-----------------------------------------------------------------------------------
+
+if (ModelState.IsValid) {
+
+-----------------------------------------------------------------------------------
+
+<div asp-validation-summary="All"></div>
+
+-----------------------------------------------------------------------------------
+
+.field-validation-error    {color: #f00;} 
+.field-validation-valid    { display: none;} 
+.input-validation-error    { border: 1px solid #f00; background-color: #fee; } .validation-summary-errors { font-weight: bold; color: #f00;} .validation-summary-valid  { display: none;}
+
+-----------------------------------------------------------------------------------
+
+3. wwwroot
+
+ <link rel="stylesheet" href="/css/styles.css" />
+
+--> wwwroot is omitted
+
+-----------------------------------------------------------------------------------
+
+app.UseStaticFiles();
+
+--> Make sure to include this before app.UseRouting()
+
+-----------------------------------------------------------------------------------
+
+4. Libman
+
+--> Right click Project, add client-side library
+
+-----------------------------------------------------------------------------------
+
+5. Enabling the MVC Framework
+
+services.AddControllersWithViews();
+
+            app.UseEndpoints(endpoints => {
+                //endpoints.MapGet("/", async context => {
+                //    await context.Response.WriteAsync("Hello World!");
+                //});
+                endpoints.MapDefaultControllerRoute();
+            });
+
+-----------------------------------------------------------------------------------
+
+6. Null Conditional Operator
+
+string name = p?.Name; 
+decimal? price = p?.Price;
+
+
+--> If you try to access Property of null object, it will cause NullReference Exception, to avoid this, we use Null Conditional Operator
+
+--> If p is null, then name will be set to null as well. If p is not null, then name will be set to the value of the Person.Name property
+
+-----------------------------------------------------------------------------------
+
+7. Null Coaslescing Operator
+
+string name = p?.Name ?? "<No Name>";
+
+--> Replaces null values with default values
+
+-----------------------------------------------------------------------------------
+
+8. String is not nullable
+
+string product = null		(compiletime error)
+string? product = null		(no error)
+
+-----------------------------------------------------------------------------------
+
+9. Auto Implemented Properties
+
+public string Name { get; set; } 
+... 
+
+public string Name {
+    get { return name; }
+    set { name = value; } } 
+
+-----------------------------------------------------------------------------------
+
+10. String Interpolation
+
+results.Add($"Name: {name}, Price: {price}, Related: {relatedName}");
+
+--> String interpolation supports all the format specifiers that are available with the string.Format method.
+
+--> $"Price: {price:C2}" would format the price value as a currency value with two decimal digits.
+
+-----------------------------------------------------------------------------------
+
+11. Generic Filter Extension Method
+
+        public static IEnumerable<Product> Filter(this IEnumerable<Product> productEnum,
+                Func<Product, bool> selector) {
+
+            foreach (Product prod in productEnum) {
+                if (selector(prod)) {
+                    yield return prod;
+                }
+            }
+        }
+
+--> yield return means returning same object whose extension method we follow.
+
+--> Means the condition will be defined by client class.
+
+            decimal priceFilterTotal = productArray
+                .Filter(p => (p?.Price ?? 0) >= 20)
+                .TotalPrices();
+
+            decimal nameFilterTotal = productArray
+                .Filter(p => p?.Name?[0] == 'S')
+                .TotalPrices();
+
+-----------------------------------------------------------------------------------
+
+12. Using Default Implementations in Interfaces
+
+--> Normally, interface do not provide implementation
+--> C# 8 provides new feature in interfaces
+
+--> C# makes it possible to update interfaces without breaking the existing implementations of them.
+
+    public interface IProductSelection {
+        IEnumerable<Product> Products { get; }
+        IEnumerable<string> Names => Products.Select(p => p.Name);
+    }
+
+
+-----------------------------------------------------------------------------------
+
+13. Asynchronous Operation
+
+        public async static Task<long?> GetPageLength() {
+            HttpClient client = new HttpClient();
+            var httpMessage = await client.GetAsync("http://apress.com");
+            return httpMessage.Content.Headers.ContentLength;
+        }
+
+--> Object for get request from api used is System.Net.Http.HttpClient
+
+-----------------------------------------------------------------------------------
+
+14. IServicesCollection object
+
+--> The ConfigureServices method is used to set up objects, known as services, that can be used throughout the application and that are accessed through a feature called dependency injection.
+
+-->  The AddControllersWithViews method called in the ConfigureServices method sets up the shared objects required by applications using the MVC Framework and the Razor view engine.
+
+
+-----------------------------------------------------------------------------------
+
+15. Middleware
+
+--> ASP.NET Core receives HTTP requests and passes them along a request pipeline, which is populated with middleware components registered in the Configure method. 
+
+--> Each middleware component is able to inspect requests, modify them, generate a response, or modify the responses that other components have produced. 
+
+-----------------------------------------------------------------------------------
+
+16. endpoint middleware
+
+--> One especially important middleware component provides the endpoint routing feature, which matches HTTP requests to the application features - known as endpoints - able to produce responses for them
+
+-----------------------------------------------------------------------------------
+
+17. _ViewImports.cshtml
+
+@using SportsStore.Models 
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+-----------------------------------------------------------------------------------
+
+18. _ViewStart.cshtml 
+
+@{
+    Layout = "_Layout"; 
+}
+
+-----------------------------------------------------------------------------------
+
+19. MapDefaultControllerRoute method 
+
+--> This method tells ASP.NET Core how to match URLs to controller classes. 
+
+--> eg. Consider the following action method
+
+public IActionResult Index() => View();
+
+--> This action method return only view object.
+--> It is the job of MapDefaultControllerRoute to find the view for Index actionmethod to use the same name to match the url
+
+-----------------------------------------------------------------------------------
+
+20. DbContext class
+
+    public class StoreDbContext: DbContext {
+
+        public StoreDbContext(DbContextOptions<StoreDbContext> options)
+            : base(options) { }
+
+        public DbSet<Product> Products { get; set; }
+    } 
+
+
+-----------------------------------------------------------------------------------
+
+21. DbContextOptions object
+
+            services.AddDbContext<StoreDbContext>(opts => {
+                opts.UseSqlServer(
+                    Configuration["ConnectionStrings:SportsStoreConnection"]);
+            });
+
+--> It tells 3 things:
+
+- Sql Server to use
+- Connection String
+- Which dbContext class to use, which will inherit this options object
+
+-----------------------------------------------------------------------------------
+
+22. IEnumerable vs IQueryable
+
+--> IQueryable<T> interface allows me to ask the database for just the objects that I require using standard lINQ statements
+
+--> Without the IQueryable<T> interface, I would have to retrieve all of the Product objects from the database and then discard the ones that I don’t want, which becomes an expensive operation as the amount of data used by an application increases.
+
+-----------------------------------------------------------------------------------
+
+23. Dependency Injection
+
+services.AddScoped<IStoreRepository, EFStoreRepository>();
+
+
+        public HomeController(IStoreRepository repo) {
+            repository = repo;
+        }
+
+
+-----------------------------------------------------------------------------------
+
+24. Pagination
+
+        public ViewResult Index(int productPage = 1)
+            => View(repository.Products
+                .OrderBy(p => p.ProductID)
+                .Skip((productPage - 1) * PageSize)
+                .Take(PageSize)); 
+
+-----------------------------------------------------------------------------------
+
+25. Tag Helper for Pagination
+
+    [HtmlTargetElement("div", Attributes = "page-model")]
+
+    public class PageLinkTagHelper : TagHelper {
+
+        private IUrlHelperFactory urlHelperFactory;
+
+        public PageLinkTagHelper(IUrlHelperFactory helperFactory) {
+            urlHelperFactory = helperFactory;
+        }
+
+        [ViewContext]
+        [HtmlAttributeNotBound]
+        public ViewContext ViewContext { get; set; }
+
+        public PagingInfo PageModel { get; set; }
+
+        public string PageAction { get; set; }
+
+        public override void Process(TagHelperContext context, TagHelperOutput output) {
+
+            IUrlHelper urlHelper = urlHelperFactory.GetUrlHelper(ViewContext);
+
+            TagBuilder result = new TagBuilder("div");
+
+            for (int i = 1; i <= PageModel.TotalPages; i++) {
+                TagBuilder tag = new TagBuilder("a");
+                tag.Attributes["href"] = urlHelper.Action(PageAction,
+                   new { productPage = i });
+                tag.InnerHtml.Append(i.ToString());
+                result.InnerHtml.AppendHtml(tag);
+            }
+
+            output.Content.AppendHtml(result.InnerHtml);
+        }
+    }
+
+
+--> It targets elements with div tag and page-model attribute
+--> It receives information with attributes like page-model, page-action
+
+--> We bind attributes with properties in tag helper class
+--> To not bind specific property, we bind with HttpAttributeNotBound DataAnnotation
+
+--> TagBuilder is used to create html tag
+
+--> We set attribute of tag using Attributes[""] property.
+
+--> We append child-element, using InnerHTML.AppendHTML property.
+
+--> Finally, output is returned with created html.
+
+--> The IUrlHelper interface provides access to URL-generating functionality
+
+-----------------------------------------------------------------------------------
+
+26. ViewImports
+
+@addTagHelper *, SportsStore
+
+--> It will decide the scope of tag helper
+--> Now, it is referencing current project name.
+
+-----------------------------------------------------------------------------------
+
+27. Action method corresponding to pagination
+
+
+    public class ProductsListViewModel {
+        public IEnumerable<Product> Products { get; set; }
+        public PagingInfo PagingInfo { get; set; }
+    }
+
+
+        public ViewResult Index(int productPage = 1)
+           => View(new ProductsListViewModel {
+
+               Products = repository.Products
+                   .OrderBy(p => p.ProductID)
+                   .Skip((productPage - 1) * PageSize)
+                   .Take(PageSize),
+
+               PagingInfo = new PagingInfo {
+                   CurrentPage = productPage,
+                   ItemsPerPage = PageSize,
+                   TotalItems = repository.Products.Count()
+               }
+           });
+    
+
+-----------------------------------------------------------------------------------
+
+28. View using Pagination tag-helper
+
+<div page-model="@Model.PagingInfo" page-action="Index"></div>
+
+
+--> When Razor finds the page-model attribute on the div element, it asks the PageLinkTagHelper class to transform the element, which produces the set of links 
+
+-----------------------------------------------------------------------------------
+
+29. Improving the Urls
+
+http://localhost/?productPage=2
+
+to 
+
+http://localhost/Page2
+
+
+                endpoints.MapControllerRoute("pagination",
+                    "Products/Page{productPage}",
+                    new { Controller = "Home", action = "Index" });
+
+
+--> parameters: name, template, route
+
+-----------------------------------------------------------------------------------
+
+30. Styling the Pagination
+
+<div page-model="@Model.PagingInfo" page-action="Index" page-classes-enabled="true"
+     page-class="btn" page-class-normal="btn-outline-dark"
+     page-class-selected="btn-primary" class="btn-group pull-right m-1"> </div>
+
+-----------------------------------------------------------------------------------
+
+    [HtmlTargetElement("div", Attributes = "page-model")]
+
+    public class PageLinkTagHelper : TagHelper {
+
+        private IUrlHelperFactory urlHelperFactory;
+
+        public PageLinkTagHelper(IUrlHelperFactory helperFactory) {
+            urlHelperFactory = helperFactory;
+        }
+
+        [ViewContext]
+        [HtmlAttributeNotBound]
+        public ViewContext ViewContext { get; set; }
+
+        public PagingInfo PageModel { get; set; }
+
+        public string PageAction { get; set; }
+
+        public bool PageClassesEnabled { get; set; } = false;
+
+        public string PageClass { get; set; }
+
+        public string PageClassNormal { get; set; }
+
+        public string PageClassSelected { get; set; }
+
+        public override void Process(TagHelperContext context, TagHelperOutput output) {
+
+            IUrlHelper urlHelper = urlHelperFactory.GetUrlHelper(ViewContext);
+
+            TagBuilder result = new TagBuilder("div");
+
+            for (int i = 1; i <= PageModel.TotalPages; i++) {
+
+                TagBuilder tag = new TagBuilder("a");
+
+                tag.Attributes["href"] = urlHelper.Action(PageAction, new { productPage = i });
+
+                if (PageClassesEnabled) {
+                    tag.AddCssClass(PageClass);
+                    tag.AddCssClass(i == PageModel.CurrentPage
+                        ? PageClassSelected : PageClassNormal);
+                }
+
+                tag.InnerHtml.Append(i.ToString());
+                result.InnerHtml.AppendHtml(tag);
+            }
+            output.Content.AppendHtml(result.InnerHtml);
+        }
+    }
+
+-----------------------------------------------------------------------------------
+
+31. Partial View
+
+@model Product
+<div class="card card-outline-primary m-1 p-1">
+    <div class="bg-faded p-1">
+        <h4>
+            @Model.Name
+            <span class="badge badge-pill badge-primary" style="float:right">
+                <small>@Model.Price.ToString("c")</small>
+            </span>
+        </h4>
+    </div>
+    <div class="card-text p-1">@Model.Description</div> 
+</div>
+
+-----------------------------------------------------------------------------------
+
+@foreach (var p in Model.Products) {
+    <partial name="ProductSummary" model="p" /> 
+}
+
+-----------------------------------------------------------------------------------
+
+32. Routing between Category and Project in that Category
+
+            app.UseEndpoints(endpoints => {
+
+                endpoints.MapControllerRoute("catpage",
+                    "{category}/Page{productPage:int}",
+                    new { Controller = "Home", action = "Index" });
+
+                endpoints.MapControllerRoute("page", "Page{productPage:int}",
+                    new { Controller = "Home", action = "Index", productPage = 1 });
+
+                endpoints.MapControllerRoute("category", "{category}",
+                    new { Controller = "Home", action = "Index", productPage = 1 });
+
+                endpoints.MapControllerRoute("pagination",
+                    "Products/Page{productPage}",
+                    new { Controller = "Home", action = "Index", productPage = 1 });
+
+                endpoints.MapDefaultControllerRoute();
+            });
+
+
+--> 2nd and 3rd route won't confuse, bec. of one parameter is int and other is string
+
+--> eg. of above routes
+
+localhost/soccerBall/Page1
+localhost/1
+localhost/soccerBall
+localhost/products/page1
+
+--> All using same action method but with different routes.
+
+-----------------------------------------------------------------------------------
+
+/		--> all categories
+/Page2		--> page number 2
+/Soccer		--> products only in that category with page 1
+/Soccer/Page2	--> products only in that category with page 2
+
+--> By using the routing system both to handle incoming requests and to generate outgoing URLs, I can ensure that all the URLs in the application are consistent.
+
+-----------------------------------------------------------------------------------
+
+33. Pagination with Category needs complex generated url
+
+        [HtmlAttributeName(DictionaryAttributePrefix = "page-url-")]
+        public Dictionary<string, object> PageUrlValues { get; set; } = new Dictionary<string, object>();
+
+        public override void Process(TagHelperContext context, TagHelperOutput output) {
+            IUrlHelper urlHelper = urlHelperFactory.GetUrlHelper(ViewContext);
+
+            TagBuilder result = new TagBuilder("div");
+
+            for (int i = 1; i <= PageModel.TotalPages; i++) {
+                TagBuilder tag = new TagBuilder("a");
+
+                PageUrlValues["productPage"] = i;
+                tag.Attributes["href"] = urlHelper.Action(PageAction, PageUrlValues);
+
+                if (PageClassesEnabled) {
+                    tag.AddCssClass(PageClass);
+                    tag.AddCssClass(i == PageModel.CurrentPage
+                        ? PageClassSelected : PageClassNormal);
+                }
+                tag.InnerHtml.Append(i.ToString());
+                result.InnerHtml.AppendHtml(tag);
+            }
+
+            output.Content.AppendHtml(result.InnerHtml);
+        }
+    
+
+--> Decorating a tag helper property with the HtmlAttributeName attribute allows me to specify a prefix for attribute names on the element, which in this case will be page-url-. 
+
+-----------------------------------------------------------------------------------
+
+<div page-model="@Model.PagingInfo" page-action="Index" page-classes-enabled="true"
+     page-class="btn" page-class-normal="btn-outline-dark"
+     page-class-selected="btn-primary" page-url-category="@Model.CurrentCategory"		--> This line
+     class="btn-group pull-right m-1"> </div>
+
+-----------------------------------------------------------------------------------
+
+--> Previously, link generated was: http://localhost:5000/Page1
+--> Cons of this is it lost category filter 
+
+--> Instead, it shows all products again
+
+--> And now, link generated are like this: http://localhost:5000/Chess/Page1
+
+-----------------------------------------------------------------------------------
+
+34. View Component
+
+--> They are like Partial Views
+--> Only difference is they have access to classes directly instead of depending on action method to provide data.
+
+--> Create new folder in Project --> Components
+
+    public class NavigationMenuViewComponent : ViewComponent {
+
+        private IStoreRepository  repository;
+
+        public NavigationMenuViewComponent(IStoreRepository repo) {
+            repository = repo;
+        }
+
+        public IViewComponentResult Invoke() {
+            return View(repository.Products
+                .Select(x => x.Category)
+                .Distinct()
+                .OrderBy(x => x));
+        }
+    }
+
+-----------------------------------------------------------------------------------
+
+--> In any view,
+
+<vc:navigation-menu />
+
+-----------------------------------------------------------------------------------
+
+--> Location of view:
+
+Views/ Shared/Components/NavigationMenu	  --> Default.cshtml
+
+@model IEnumerable<string>
+
+<a class="btn btn-block btn-outline-secondary"asp-action="Index"
+   asp-controller="Home" asp-route-category="">
+    Home </a>
+
+@foreach (string category in Model) {
+    <a class="btn btn-block btn-outline-secondary"
+       asp-action="Index" asp-controller="Home"
+       asp-route-category="@category"
+       asp-route-productPage="1">
+        @category
+    </a> 
+}
+
+-----------------------------------------------------------------------------------
+
+35. Make active class for Category Navigation
+
+        public IViewComponentResult Invoke() {
+            ViewBag.SelectedCategory = RouteData?.Values["category"];
+
+            return View(repository.Products
+                .Select(x => x.Category)
+                .Distinct()
+                .OrderBy(x => x));
+        }
+
+--> RouteData Property of ViewComponent provide access to Current Request Url
+--> In parameter, it is mentioned name of route 
+
+-----------------------------------------------------------------------------------
+
+@model IEnumerable<string>
+
+<a class="btn btn-block btn-outline-secondary"asp-action="Index"
+   asp-controller="Home" asp-route-category="">
+    Home 
+</a>
+
+
+@foreach (string category in Model) {
+    <a class="btn btn-block
+       @(category == ViewBag.SelectedCategory ? "btn-primary": "btn-outline-secondary")"
+       asp-action="Index" asp-controller="Home"
+       asp-route-category="@category"
+       asp-route-productPage="1">
+        @category
+    </a> 
+}
+
+-----------------------------------------------------------------------------------
+
+36. Updating Page Count for Product with/without Categories
+
+        public ViewResult Index(string category, int productPage = 1)
+            => View(new ProductsListViewModel {
+                Products = repository.Products
+                    .Where(p => category == null || p.Category == category)
+                    .OrderBy(p => p.ProductID)
+                    .Skip((productPage - 1) * PageSize)
+                    .Take(PageSize),
+                PagingInfo = new PagingInfo {
+                    CurrentPage = productPage,
+                    ItemsPerPage = PageSize,
+
+                    TotalItems = category == null ?		--> This Line
+                        repository.Products.Count() :
+                        repository.Products.Where(e =>
+                            e.Category == category).Count()
+                },
+                CurrentCategory = category
+            });
+    
+
+-----------------------------------------------------------------------------------
+
+37. Add Support for Razor Pages
+
+services.AddRazorPages();
+
+endpoints.MapRazorPages();
+
+-----------------------------------------------------------------------------------
+
+38. Convention of placing Razor Views
+
+Views folder
+
+-----------------------------------------------------------------------------------
+
+39. Convention for URLs for Razor Pages
+
+Cart.cshtml and Cart.cshtml.cs
+
+--> localhost:/cart
+
+-----------------------------------------------------------------------------------
+
+40. Add To Cart Button
+
+--> Extension method for getting full path along with query string 
+
+    public static class UrlExtensions {
+        public static string PathAndQuery(this HttpRequest request) =>
+            request.QueryString.HasValue
+                ? $"{request.Path}{request.QueryString}"
+                : request.Path.ToString();
+    }
+
+-----------------------------------------------------------------------------------
+
+--> Button in Products Page
+
+    <form id="@Model.ProductID" asp-page="/Cart" method="post">
+        <input type="hidden" asp-for="ProductID" />
+        <input type="hidden" name="returnUrl"
+               value="@ViewContext.HttpContext.Request.PathAndQuery()" />
+        <span class="card-text p-1">
+            @Model.Description
+            <button type="submit"
+                class="btn btn-success btn-sm pull-right" style="float:right">
+                Add To Cart
+            </button>
+        </span>
+    </form>
+
+
+--> asp-page for targeting Razor Page
+
+-----------------------------------------------------------------------------------
+
+41. Enabling Sessions
+
+--> I am going to store details of a user’s cart using session state, which is data associated with a series of requests made by a user. 
+
+            services.AddDistributedMemoryCache();
+            services.AddSession();
+
+
+            app.UseStaticFiles();
+            app.UseSession();			--> Before Routing
+            app.UseRouting();
+
+
+--> The AddDistributedMemoryCache method call sets up the in-memory data store. 
+--> The AddSession method registers the services used to access session data
+
+--> The UseSession method allows the session system to automatically associate requests with sessions when they arrive from the client.
+
+-----------------------------------------------------------------------------------
+
+42. Cart Class
+
+    public class Cart {
+        public List<CartLine> Lines { get; set; } = new List<CartLine>();
+        public void AddItem(Product product, int quantity) {
+            CartLine line = Lines
+                .Where(p => p.Product.ProductID == product.ProductID)
+                .FirstOrDefault();
+            if (line == null) {
+                Lines.Add(new CartLine {
+                    Product = product,
+                    Quantity = quantity
+                });
+            } else {
+                line.Quantity += quantity;
+            }
+        }
+        public void RemoveLine(Product product) =>
+            Lines.RemoveAll(l => l.Product.ProductID == product.ProductID);
+        public decimal ComputeTotalValue() =>
+            Lines.Sum(e => e.Product.Price * e.Quantity);
+        public void Clear() => Lines.Clear();
+    }
+    public class CartLine {
+        public int CartLineID { get; set; }
+        public Product Product { get; set; }
+        public int Quantity { get; set; }
+    } 
+
+
+-----------------------------------------------------------------------------------
+
+43. Storing Object in Session State
+
+--> Extension method
+
+    public static class SessionExtensions {
+        public static void SetJson(this ISession session, string key, object value) {
+            session.SetString(key, JsonSerializer.Serialize(value));
+        }
+        public static T GetJson<T>(this ISession session, string key) {
+            var sessionData = session.GetString(key);
+            return sessionData == null
+                ? default(T) : JsonSerializer.Deserialize<T>(sessionData);
+        }
+    }
+
+--> The session state feature in ASP.NET Core stores only int, string, and byte[] values. 
+
+
+-----------------------------------------------------------------------------------
+
+44. Cart Razor Class
+
+    public class CartModel : PageModel {
+
+        private IStoreRepository repository;
+
+        public CartModel(IStoreRepository repo) {
+            repository = repo;
+        }
+
+        public Cart Cart { get; set; }
+
+        public string ReturnUrl { get; set; }
+
+        public void OnGet(string returnUrl) {
+            ReturnUrl = returnUrl ?? "/";
+            Cart = HttpContext.Session.GetJson<Cart>("cart") ?? new Cart();
+        }
+
+        public IActionResult OnPost(long productId, string returnUrl) {
+
+            Product product = repository.Products.FirstOrDefault(p => p.ProductID == productId);
+
+            Cart = HttpContext.Session.GetJson<Cart>("cart") ?? new Cart();
+
+            Cart.AddItem(product, 1);
+            HttpContext.Session.SetJson("cart", Cart);
+            return RedirectToPage(new { returnUrl = returnUrl });
+        }
+    }
+
+-----------------------------------------------------------------------------------
+
+45. Cart Razor View
+
+<h2>Your cart</h2> 
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Quantity</th>
+            <th>Item</th>
+            <th class="text-right">Price</th>
+            <th class="text-right">Subtotal</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var line in Model.Cart.Lines) {
+            <tr>
+                <td class="text-center">@line.Quantity</td>
+                <td class="text-left">@line.Product.Name</td>
+                <td class="text-right">@line.Product.Price.ToString("c")</td>
+                <td class="text-right">
+                    @((line.Quantity * line.Product.Price).ToString("c"))
+                </td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" class="text-right">Total:</td>
+            <td class="text-right">
+                @Model.Cart.ComputeTotalValue().ToString("c")
+            </td>
+        </tr>
+    </tfoot> 
+</table>
+
+<div class="text-center">
+    <a class="btn btn-primary" href="@Model.ReturnUrl">Continue shopping</a> 
+</div>
+
+-----------------------------------------------------------------------------------
+
+46. List method to remove items
+
+Lines.RemoveAll(l => l.Product.ProductID == product.ProductID);
+Lines.Clear();
+
+-----------------------------------------------------------------------------------
+
+47. 
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
