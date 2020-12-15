@@ -1,0 +1,433 @@
+﻿var client = new RestClient("https://localhost:5001/WeatherForecast");
+var request = new RestRequest(Method.POST);
+
+request.AddHeader("Content-Type", "application/json");
+string json = Newtonsoft.Json.JsonConvert.SerialzeObject(thing);
+request.AddParameter("application/json", json , ParameterType.RequestBody);
+
+IRestResponse response = client.Execute(request);
+
+---------------------------------------------------------------------
+
+Path.Combine(base_url, resource_url)
+
+---------------------------------------------------------------------
+
+public class HttpClientWrapper
+    {
+        private readonly HttpClient _client;
+ 
+        public HttpClientWrapper(HttpClient client)
+        {
+            _client = client;
+        }
+ 
+        public HttpClient Client => _client;
+ 
+        public async Task<T> PostAsync<T>(string url, object body)
+        {
+            var response = await _client.PostAsync(url, new JsonContent(body));
+ 
+            response.EnsureSuccessStatusCode();
+ 
+            var respnoseText = await response.Content.ReadAsStringAsync();
+            var data = JsonConvert.DeserializeObject<T>(respnoseText);
+            return data;
+        }
+ 
+        public async Task PostAsync(string url, object body)
+        {
+            var response = await _client.PostAsync(url, new JsonContent(body));
+ 
+            response.EnsureSuccessStatusCode();
+        }
+ 
+        public async Task<T> PutAsync<T>(string url, object body)
+        {
+            var response = await _client.PutAsync(url, new JsonContent(body));
+ 
+            response.EnsureSuccessStatusCode();
+ 
+            var respnoseText = await response.Content.ReadAsStringAsync();
+            var data = JsonConvert.DeserializeObject<T>(respnoseText);
+            return data;
+        }
+}
+
+---------------------------------------------------------------------
+
+--> Process
+
+1. client send api_key and api_password
+2. server after validating credentials provide token otherwise BadRequest or 401 Unauthorized
+3. client receive token and uses that token for further requests
+
+--> Benefit:
+1. api_password sent only one time
+2. Time limit on token is set
+
+---------------------------------------------------------------------
+
+public void ConfigureServices(IServiceCollection services)
+{
+ services
+	 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+	 .AddJwtBearer(options =>
+	 {
+		 var serverSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["JWT:ServerSecret"]));
+		 options.TokenValidationParameters = new TokenValidationParameters
+	 	{
+	 		IssuerSigningKey = serverSecret,
+	 		ValidIssuer = Configuration["JWT:Issuer"],
+	 		ValidAudience = Configuration["JWT:Audience"]
+	 	};
+ 	});
+ services.AddMvc();
+ }
+
+ public void Configure(IApplicationBuilder app)
+ {
+ 	app.UseAuthentication();
+ 	app.UseMvc();
+ }
+}
+
+--> When adding the authentication middleware by calling AddAuthentication, we configure the default authentication scheme to be Bearer. By further configuring the authentication, we call the AddJwtBearer function and specify JwtBearerOptions, where the IssuerSigningKey, ValidIssuer, and ValidAudience are assigned from the values sourced in the appSettings.json configuration file.
+
+---------------------------------------------------------------------
+
+[Route("api/authenticate")]
+public class AuthenticateController: Controller
+{
+   //...
+   public IActionResult Post()
+   {
+ 	var authorizationHeader = Request.Headers["Authorization"].First();
+ 	var key = authorizationHeader.Split(' ')[1];
+ 	var credentials = Encoding.UTF8.GetString(Convert.FromBase64String(key)).Split(':');
+ 
+	var serverSecret = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["JWT:ServerSecret"]));
+ 
+	if (credentials[0] == "awesome-username" && credentials[1] == "awesome-password")
+ 	{
+ 	    var result = new
+ 	    {
+ 		token = GenerateToken(serverSecret)
+ 	    };
+ 
+ 	return Ok(result);
+   }
+  
+   return BadRequest();
+ }
+
+---------------------------------------------------------------------
+
+
+private string GenerateToken(SecurityKey key)
+{
+   var now = DateTime.UtcNow;
+   var issuer = Configuration["JWT:Issuer"];
+   var audience = Configuration["JWT:Audience"];
+
+   var identity = new ClaimsIdentity();
+   var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+   var handler = new JwtSecurityTokenHandler();
+
+   var token = handler.CreateJwtSecurityToken(issuer, audience, identity, now, now.Add(TimeSpan.FromHours(1)), now, signingCredentials);
+   var encodedJwt = handler.WriteToken(token);
+
+   return encodedJwt;
+}
+
+---------------------------------------------------------------------
+
+Enforcing SSL
+
+public void ConfigureServices(IServiceCollection services)
+{
+   services.Configure<MvcOptions>(options =>
+   {
+ 	options.Filters.Add(new RequireHttpsAttribute());
+   });
+   //...
+}
+
+---------------------------------------------------------------------
+
+To automatically redirect all requests via HTTPS
+
+public void Configure(IApplicationBuilder app)
+{
+    var options = new RewriteOptions().AddRedirectToHttps();
+    app.UseRewriter(options);
+}
+
+-------------------------------------------------------------------
+
+Enabling Cors
+
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddCors();
+    //...
+}
+ 
+public void Configure(IApplicationBuilder app)
+{
+     app.UseCors(config => config.WithOrigins("http://awesome.com"));
+     //...
+}
+
+---------------------------------------------------------------------
+
+Swagger
+
+ Swashbuckle.AspNetCore NuGet package,
+
+ services.AddSwaggerGen(c =>
+ {
+     c.SwaggerDoc("v1", new Info { Title = "Awesome API", Version = "v1" });
+ });
+
+
+--> The preceding code will create an API documentation generator and call it “v1”
+
+
+ app.UseSwagger();
+ app.UseSwaggerUI(c =>
+ {
+     c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+ });
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+---------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
